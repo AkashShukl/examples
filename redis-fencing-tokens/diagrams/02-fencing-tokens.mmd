@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant A as Worker A
+    participant R as Token allocator + Redis lease
+    participant B as Worker B
+    participant S as Resource + atomic token check
+    A->>R: Acquire lease
+    R-->>A: token 1
+    Note over A: Long pause (> TTL)
+    Note over R: A's lease expires
+    B->>R: Acquire lease
+    R-->>B: token 2
+    B->>S: Write B, token=2
+    S-->>B: ACCEPT; last_token=2
+    Note over A: Resumes with stale token
+    A->>S: Write A, token=1
+    S-->>A: REJECT, since 1 < 2
+    Note over S: Final state = B

@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant A as Worker A
+    participant R as Redis lease
+    participant B as Worker B
+    participant S as Resource
+    A->>R: SET lock A NX PX 300
+    R-->>A: Acquired
+    Note over A: Long pause (> 300 ms)
+    Note over R: A's lease expires
+    B->>R: SET lock B NX PX 300
+    R-->>B: Acquired
+    B->>S: Write B
+    S-->>B: Accepted
+    Note over A: Worker resumes without lease
+    A->>S: Write A (stale)
+    S-->>A: Accepted (unsafe)
+    Note over S: Final state = A, overwrites B

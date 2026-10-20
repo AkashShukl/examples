@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant A as Worker A
+    participant R as Lease/token service
+    participant B as Worker B
+    participant S as Resource
+    Note over A: Previously received token 1
+    Note over R: Lease for A expires
+    B->>R: Acquire lease
+    R-->>B: token 2
+    Note over B: Has not written yet
+    A->>S: Write token 1
+    Note over S: last_token=0, so 1 can be accepted
+    S-->>A: ACCEPT
+    B->>S: Write token 2
+    S-->>B: ACCEPT
+    Note over S: Fencing orders accepted writes, not real-time lease validity

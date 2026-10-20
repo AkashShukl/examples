@@ -1,0 +1,45 @@
+name: Redis fencing tokens demo
+
+on:
+  push:
+    paths:
+      - 'redis-fencing-tokens/**'
+      - '.github/workflows/redis-fencing-tokens.yml'
+  pull_request:
+    paths:
+      - 'redis-fencing-tokens/**'
+      - '.github/workflows/redis-fencing-tokens.yml'
+  workflow_dispatch:
+
+jobs:
+  test-and-demo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: redis-fencing-tokens
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: redis-fencing-tokens/go.mod
+          cache: false
+      - name: Unit tests
+        run: go test ./...
+      - name: Static analysis
+        run: go vet ./...
+      - name: Verify live fencing demo
+        run: |
+          go run . | tee demo-output.txt
+          grep -Fq 'Final value: stale-write-from-A  <-- WRONG' demo-output.txt
+          grep -Fq "Resource accepted A's stale write: false (must be false)" demo-output.txt
+          grep -Fq 'Final value: newer-write-from-B  <-- CORRECT' demo-output.txt

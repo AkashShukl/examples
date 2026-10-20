@@ -1,0 +1,12 @@
+flowchart LR
+    R["Redis lock + fencing token allocator"]
+    A["Worker A · token 1"]
+    B["Worker B · token 2"]
+    G{"Resource check + write (atomic)"}
+    S[("Authoritative state: token=2, value=B")]
+    R -->|issues 1| A
+    R -->|issues 2 after expiry| B
+    A -->|stale write 1| G
+    B -->|newer write 2| G
+    G -->|accept token 2| S
+    G -.->|reject token 1 after 2 accepted| A
